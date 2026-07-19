@@ -154,7 +154,10 @@
   .hero-frame{
     margin:56px auto 0; width:min(420px, 70vw); aspect-ratio:16/8;
     position:relative; border:1px solid var(--line); padding:10px;
+    transition:opacity .5s var(--ease-soft), margin .5s var(--ease-soft), max-height .5s var(--ease-soft);
+    overflow:hidden;
   }
+  .hero-frame.js-hidden{ opacity:0; margin-top:0; max-height:0; padding:0; border-width:0; }
   .hero-frame img{ width:100%; height:100%; object-fit:cover; filter:saturate(0.92) contrast(1.05); }
   .hero-frame::before, .hero-frame::after{
     content:''; position:absolute; width:14px; height:14px; border-color:var(--gold); border-style:solid;
@@ -317,7 +320,7 @@
       <div class="eyebrow">A DOMESTIC PORTRAIT SERIES</div>
       <h1>Four Persians.<br><em>One quiet household.</em></h1>
       <p class="hero-sub">Pepper and Amber, and the two kittens they raised — Salt and Ash. A record of naps, watch-shifts, and the particular dignity of a very fluffy family.</p>
-      <div class="hero-frame">
+      <div class="hero-frame" id="heroFallback">
         <img src="assets/family-group.webp" alt="Pepper, Amber, Salt and Ash together in costume, celebrating a second birthday under a gold banner." loading="eager" />
       </div>
     </div>
@@ -459,6 +462,12 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
@@ -514,67 +523,179 @@
     magBtn.addEventListener('mouseleave', function(){ gsap.to(magBtn, { x:0, y:0, duration:.5, ease:'elastic.out(1,0.4)' }); });
   }
 
-  /* ---------------- three.js particle field (hero only) ---------------- */
-  var particleAnim;
+  /* ---------------- signature 3D scene: floating portrait gallery ---------------- */
   (function(){
     var canvas = document.getElementById('particles');
-    if (reduced){ canvas.style.display='none'; return; }
-    var renderer = new THREE.WebGLRenderer({ canvas:canvas, alpha:true, antialias:false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 100);
-    camera.position.z = 12;
+    var fallback = document.getElementById('heroFallback');
+    var mobile = window.innerWidth < 760;
 
-    var count = window.innerWidth < 760 ? 160 : 380;
-    var geo = new THREE.BufferGeometry();
-    var positions = new Float32Array(count*3);
-    for (var i=0;i<count;i++){
-      positions[i*3] = (Math.random()-0.5)*22;
-      positions[i*3+1] = (Math.random()-0.5)*14;
-      positions[i*3+2] = (Math.random()-0.5)*14;
+    if (reduced || !window.WebGLRenderingContext){
+      canvas.style.display='none';
+      return; // fallback .hero-frame image stays visible
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-    function makeSprite(){
+    var renderer;
+    try{
+      renderer = new THREE.WebGLRenderer({ canvas:canvas, alpha:true, antialias:!mobile, powerPreference:'high-performance' });
+    }catch(e){
+      canvas.style.display='none';
+      return;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.4 : 1.8));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0c0b0d, 0.05);
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0.3, mobile ? 12 : 10.5);
+    var camBase = { z: camera.position.z };
+
+    /* lighting: warm key + cool rim, both animated for a living, dynamic feel */
+    var ambient = new THREE.AmbientLight(0x2a241a, 1.1);
+    scene.add(ambient);
+    var keyLight = new THREE.PointLight(0xcba135, 3.2, 22, 2);
+    keyLight.position.set(4, 3, 6);
+    scene.add(keyLight);
+    var rimLight = new THREE.PointLight(0x5b7a8c, 2.2, 22, 2);
+    rimLight.position.set(-5, -2, -3);
+    scene.add(rimLight);
+
+    /* dust motes for atmosphere */
+    var dustCount = mobile ? 90 : 220;
+    var dustGeo = new THREE.BufferGeometry();
+    var dustPos = new Float32Array(dustCount*3);
+    for (var d=0; d<dustCount; d++){
+      dustPos[d*3] = (Math.random()-0.5)*20;
+      dustPos[d*3+1] = (Math.random()-0.5)*12;
+      dustPos[d*3+2] = (Math.random()-0.5)*14 - 2;
+    }
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+    function sprite(){
       var c = document.createElement('canvas'); c.width=64; c.height=64;
       var ctx = c.getContext('2d');
       var g = ctx.createRadialGradient(32,32,0,32,32,32);
       g.addColorStop(0,'rgba(203,161,53,0.9)');
-      g.addColorStop(0.4,'rgba(203,161,53,0.35)');
+      g.addColorStop(0.4,'rgba(203,161,53,0.3)');
       g.addColorStop(1,'rgba(203,161,53,0)');
       ctx.fillStyle=g; ctx.fillRect(0,0,64,64);
       return new THREE.CanvasTexture(c);
     }
-    var mat = new THREE.PointsMaterial({
-      size: 0.14, map: makeSprite(), transparent:true, depthWrite:false,
-      blending: THREE.AdditiveBlending, opacity:0.8
+    var dustMat = new THREE.PointsMaterial({ size:0.1, map:sprite(), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:0.7 });
+    var dust = new THREE.Points(dustGeo, dustMat);
+    scene.add(dust);
+
+    /* floating framed portraits — the signature 3D moment */
+    var loader = new THREE.TextureLoader();
+    var portraitData = [
+      { src:'assets/pepper.webp',       w:2.0, h:2.5, x:-4.4, y: 0.6,  z:-1.5, ry: 0.35 },
+      { src:'assets/amber.webp',        w:2.3, h:2.15,x: 4.3, y:-0.5,  z:-2.4, ry:-0.32 },
+      { src:'assets/salt.webp',         w:2.0, h:2.15,x:-2.6, y:-1.6,  z: 1.4, ry: 0.22 },
+      { src:'assets/ash.webp',          w:2.0, h:2.2, x: 2.7, y: 1.7,  z: 0.6, ry:-0.24 },
+      { src:'assets/family-group.webp', w:3.6, h:1.6, x: 0,   y: 0,    z: -4.6, ry: 0 }
+    ];
+    var portraitGroup = new THREE.Group();
+    var portraits = [];
+
+    portraitData.forEach(function(p, i){
+      loader.load(p.src, function(tex){
+        tex.encoding = THREE.sRGBEncoding;
+        var group = new THREE.Group();
+
+        var frameGeo = new THREE.PlaneGeometry(p.w + 0.22, p.h + 0.22);
+        var frameMat = new THREE.MeshStandardMaterial({ color:0xcba135, metalness:0.65, roughness:0.32, emissive:0x3a2c0c, emissiveIntensity:0.35 });
+        var frame = new THREE.Mesh(frameGeo, frameMat);
+        frame.position.z = -0.03;
+
+        var photoGeo = new THREE.PlaneGeometry(p.w, p.h);
+        var photoMat = new THREE.MeshBasicMaterial({ map:tex, toneMapped:false });
+        var photo = new THREE.Mesh(photoGeo, photoMat);
+
+        group.add(frame, photo);
+        group.position.set(p.x, p.y, p.z);
+        group.rotation.y = p.ry;
+        group.userData.floatPhase = i * 1.3;
+        group.userData.baseY = p.y;
+        group.userData.baseRotY = p.ry;
+
+        portraitGroup.add(group);
+        portraits.push(group);
+      });
     });
-    var points = new THREE.Points(geo, mat);
-    scene.add(points);
+    scene.add(portraitGroup);
 
     function resize(){
       var w = window.innerWidth, h = window.innerHeight;
       renderer.setSize(w,h);
       camera.aspect = w/h; camera.updateProjectionMatrix();
+      if (composer) composer.setSize(w,h);
     }
+
+    /* bloom postprocessing for the gold highlights — skipped on mobile for perf */
+    var composer = null;
+    if (!mobile && window.THREE && THREE.EffectComposer){
+      try{
+        composer = new THREE.EffectComposer(renderer);
+        composer.addPass(new THREE.RenderPass(scene, camera));
+        var bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.5, 0.78);
+        composer.addPass(bloom);
+      }catch(e){ composer = null; }
+    }
+
     resize();
     window.addEventListener('resize', resize);
 
-    var clock = new THREE.Clock();
+    /* mouse parallax (desktop only) */
+    var mouseX = 0, mouseY = 0;
+    if (!mobile){
+      window.addEventListener('mousemove', function(e){
+        mouseX = (e.clientX / window.innerWidth - 0.5);
+        mouseY = (e.clientY / window.innerHeight - 0.5);
+      });
+    }
+
+    /* scroll-driven cinematic dolly through the hero */
+    var scrollProgress = 0;
+    ScrollTrigger.create({
+      trigger: '#hero', start:'top top', end:'bottom top', scrub:0.6,
+      onUpdate: function(self){ scrollProgress = self.progress; }
+    });
+
     var heroEl = document.getElementById('hero');
     var visible = true;
     var io = new IntersectionObserver(function(entries){ visible = entries[0].isIntersecting; }, { threshold:0 });
     io.observe(heroEl);
 
+    var clock = new THREE.Clock();
     function animate(){
-      particleAnim = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
       if (!visible) return;
       var t = clock.getElapsedTime();
-      points.rotation.y = t*0.015;
-      points.rotation.x = Math.sin(t*0.05)*0.05;
-      renderer.render(scene, camera);
+
+      portraits.forEach(function(g){
+        g.position.y = g.userData.baseY + Math.sin(t*0.5 + g.userData.floatPhase)*0.14;
+        g.rotation.y = g.userData.baseRotY + Math.sin(t*0.3 + g.userData.floatPhase)*0.05;
+      });
+
+      keyLight.position.x = 4 + Math.sin(t*0.2)*1.2;
+      keyLight.position.y = 3 + Math.cos(t*0.15)*0.8;
+      rimLight.position.x = -5 + Math.cos(t*0.18)*1.4;
+
+      dust.rotation.y = t*0.01;
+
+      /* cinematic dolly: camera pushes in and rotates slightly as the hero scrolls away */
+      camera.position.z = camBase.z - scrollProgress*4.5;
+      camera.position.y = 0.3 + scrollProgress*1.2;
+      portraitGroup.rotation.y = scrollProgress*0.4 + mouseX*0.12;
+      portraitGroup.rotation.x = mouseY*0.05;
+      camera.lookAt(0,0,0);
+
+      if (composer) composer.render(); else renderer.render(scene, camera);
     }
     animate();
+
+    /* once the scene is confirmed running, smoothly collapse the flat fallback image */
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ fallback.classList.add('js-hidden'); }); });
   })();
 
   /* ---------------- scroll reveals ---------------- */
