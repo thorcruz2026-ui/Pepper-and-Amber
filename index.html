@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Pepper &amp; Amber Household — A Persian Portrait Series</title>
+<meta name="description" content="A cinematic portrait series of a four-cat Persian household: Pepper, Amber, Salt and Ash." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --void:#0c0b0d;
+    --void-2:#141215;
+    --bone:#f2ead9;
+    --bone-dim:#d8cfba;
+    --copper:#b5702f;
+    --copper-light:#d99a58;
+    --ash:#8b8b86;
+    --gold:#cba135;
+    --line: rgba(203,161,53,0.35);
+    --ease-silk: cubic-bezier(.22,1,.36,1);
+    --ease-soft: cubic-bezier(.16,.84,.44,1);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:auto; }
+  body{
+    margin:0;
+    background:var(--void);
+    color:var(--bone);
+    font-family:'Inter', sans-serif;
+    font-weight:400;
+    overflow-x:hidden;
+    cursor:none;
+  }
+  @media (max-width:860px){
+    body{ cursor:auto; }
+  }
+  img{ max-width:100%; display:block; }
+  a{ color:inherit; }
+
+  ::selection{ background:var(--copper); color:var(--void); }
+
+  h1,h2,h3{ font-family:'Fraunces', serif; font-weight:500; margin:0; }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.32em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:24px;
+    height:1px;
+    background:var(--gold);
+    display:inline-block;
+  }
+
+  /* ---------- grain overlay ---------- */
+  .grain{
+    position:fixed; inset:0; z-index:9998;
+    pointer-events:none;
+    opacity:0.05;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---------- custom cursor ---------- */
+  .cursor{
+    position:fixed; top:0; left:0; width:8px; height:8px; border-radius:50%;
+    background:var(--gold); pointer-events:none; z-index:9999;
+    transform:translate(-50%,-50%);
+    transition:width .25s var(--ease-soft), height .25s var(--ease-soft), background .25s;
+    mix-blend-mode:difference;
+  }
+  .cursor-ring{
+    position:fixed; top:0; left:0; width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--gold); pointer-events:none; z-index:9998;
+    transform:translate(-50%,-50%);
+    transition:width .3s var(--ease-soft), height .3s var(--ease-soft), opacity .3s;
+    opacity:0.6;
+  }
+  .cursor.grow{ width:14px; height:14px; }
+  .cursor-ring.grow{ width:64px; height:64px; opacity:1; }
+  @media (max-width:860px){ .cursor, .cursor-ring{ display:none; } }
+
+  /* ---------- preloader ---------- */
+  #preloader{
+    position:fixed; inset:0; z-index:10000; background:var(--void);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  }
+  #preloader svg{ width:64px; height:64px; }
+  #preloader path{
+    fill:none; stroke:var(--gold); stroke-width:1.2;
+    stroke-dasharray:400; stroke-dashoffset:400;
+  }
+  .pre-count{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.3em;
+    color:var(--bone-dim);
+  }
+  .pre-count span{ color:var(--gold); }
+  .pre-curtain{
+    position:fixed; inset:0; background:var(--void); z-index:9997; pointer-events:none;
+  }
+
+  /* ---------- nav ---------- */
+  header.site-nav{
+    position:fixed; top:0; left:0; right:0; z-index:500;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:28px 6vw;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+    mix-blend-mode:difference;
+  }
+  header.site-nav .mark{ color:var(--bone); font-weight:500; }
+  header.site-nav .status{ color:var(--bone-dim); display:flex; gap:8px; align-items:center; }
+  .dot-live{ width:6px; height:6px; border-radius:50%; background:var(--gold); display:inline-block; animation:pulse 2.4s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+  /* ---------- hero ---------- */
+  .hero{
+    position:relative; min-height:100svh; display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  #particles{ position:absolute; inset:0; z-index:1; }
+  .hero-vignette{
+    position:absolute; inset:0; z-index:2; pointer-events:none;
+    background: radial-gradient(ellipse at center, transparent 35%, var(--void) 92%);
+  }
+  .hero-inner{
+    position:relative; z-index:3; text-align:center; padding:0 6vw; max-width:980px;
+  }
+  .hero-inner .eyebrow{ justify-content:center; margin-bottom:26px; }
+  .hero-inner .eyebrow::after{
+    content:''; width:24px; height:1px; background:var(--gold); display:inline-block;
+  }
+  .hero h1{
+    font-size:clamp(40px, 8vw, 108px);
+    line-height:0.98;
+    color:var(--bone);
+    letter-spacing:-0.01em;
+  }
+  .hero h1 em{ font-style:italic; color:var(--copper-light); font-weight:400; }
+  .hero-sub{
+    margin:28px auto 0; max-width:520px;
+    font-size:16px; line-height:1.7; color:var(--bone-dim); font-weight:300;
+  }
+  .hero-frame{
+    margin:56px auto 0; width:min(420px, 70vw); aspect-ratio:16/8;
+    position:relative; border:1px solid var(--line); padding:10px;
+  }
+  .hero-frame img{ width:100%; height:100%; object-fit:cover; filter:saturate(0.92) contrast(1.05); }
+  .hero-frame::before, .hero-frame::after{
+    content:''; position:absolute; width:14px; height:14px; border-color:var(--gold); border-style:solid;
+  }
+  .hero-frame::before{ top:-1px; left:-1px; border-width:1px 0 0 1px; }
+  .hero-frame::after{ bottom:-1px; right:-1px; border-width:0 1px 1px 0; }
+
+  .scroll-cue{
+    position:absolute; bottom:36px; left:50%; transform:translateX(-50%); z-index:4;
+    font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.3em; color:var(--bone-dim);
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+  }
+  .scroll-cue .line{ width:1px; height:36px; background:linear-gradient(var(--gold), transparent); animation:cueMove 2.2s infinite var(--ease-soft); }
+  @keyframes cueMove{ 0%{ transform:scaleY(0); transform-origin:top;} 50%{ transform:scaleY(1); transform-origin:top;} 51%{ transform-origin:bottom;} 100%{ transform:scaleY(0); transform-origin:bottom;} }
+
+  /* ---------- chapters ---------- */
+  .chapter{
+    position:relative; min-height:100vh; display:grid; align-items:center;
+    padding:120px 6vw; gap:60px;
+    grid-template-columns:1fr 1fr;
+  }
+  .chapter.reverse{ direction:rtl; }
+  .chapter.reverse > *{ direction:ltr; }
+  .chapter-media{
+    position:relative;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .chapter-media img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    transform:scale(1.12);
+    filter:saturate(0.9) contrast(1.04);
+  }
+  .chapter-media .frame-num{
+    position:absolute; top:16px; left:16px;
+    font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.2em; color:var(--gold);
+    background:rgba(12,11,13,0.55); padding:5px 9px; border:1px solid var(--line);
+  }
+  .chapter-text .eyebrow{ margin-bottom:22px; }
+  .chapter-text h2{
+    font-size:clamp(34px, 5vw, 64px); color:var(--bone); line-height:1.02;
+  }
+  .chapter-text h2 em{ font-style:italic; color:var(--copper-light); font-weight:400; }
+  .chapter-text p.lede{
+    margin:22px 0 0; font-size:17px; line-height:1.75; color:var(--bone-dim); font-weight:300; max-width:46ch;
+  }
+  .plaque{
+    margin-top:36px; border-top:1px solid var(--line); padding-top:20px;
+    display:grid; grid-template-columns:1fr 1fr; gap:16px 24px;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.05em;
+  }
+  .plaque dt{ color:var(--gold); text-transform:uppercase; letter-spacing:.18em; font-size:10px; }
+  .plaque dd{ margin:6px 0 0; color:var(--bone-dim); font-family:'Inter',sans-serif; font-size:13px; font-weight:300; }
+
+  @media (max-width:860px){
+    .chapter{ grid-template-columns:1fr; padding:90px 7vw; gap:38px; }
+    .chapter.reverse{ direction:ltr; }
+    .chapter-media{ order:-1; aspect-ratio:4/5; }
+    .plaque{ grid-template-columns:1fr 1fr; }
+  }
+
+  /* ---------- lineage ---------- */
+  .lineage{
+    position:relative; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:120px 6vw; text-align:center;
+  }
+  .lineage .eyebrow{ justify-content:center; margin-bottom:18px; }
+  .lineage h2{ font-size:clamp(30px,4.5vw,52px); color:var(--bone); }
+  .lineage h2 em{ font-style:italic; color:var(--copper-light); font-weight:400; }
+  .tree-wrap{ margin-top:64px; width:min(720px, 92vw); }
+  .tree-wrap svg{ width:100%; height:auto; overflow:visible; }
+  .tree-wrap .tline{ fill:none; stroke:var(--gold); stroke-width:1; opacity:0.7; }
+  .tree-node{ font-family:'IBM Plex Mono', monospace; }
+  .tree-node .name{ fill:var(--bone); font-size:14px; letter-spacing:.05em; }
+  .tree-node .role{ fill:var(--ash); font-size:9px; letter-spacing:.15em; text-transform:uppercase; }
+  .tree-node circle{ fill:var(--void-2); stroke:var(--gold); stroke-width:1; }
+
+  /* ---------- closing ---------- */
+  .closing{
+    position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .closing img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    filter:saturate(0.85) brightness(0.55) contrast(1.05);
+  }
+  .closing-scrim{
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(12,11,13,0.75) 0%, rgba(12,11,13,0.35) 40%, rgba(12,11,13,0.9) 100%);
+  }
+  .closing-inner{ position:relative; z-index:2; text-align:center; padding:0 6vw; max-width:760px; }
+  .closing .eyebrow{ justify-content:center; margin-bottom:24px; }
+  .closing h2{ font-size:clamp(32px,6vw,72px); color:var(--bone); line-height:1.05; }
+  .closing h2 em{ font-style:italic; color:var(--copper-light); }
+  .closing p{ margin:24px auto 0; max-width:52ch; color:var(--bone-dim); font-weight:300; line-height:1.7; }
+
+  /* ---------- footer / credit ---------- */
+  footer{
+    position:relative; padding:80px 6vw 50px; text-align:center;
+    border-top:1px solid var(--line);
+  }
+  .credit-btn{
+    display:inline-flex; align-items:center; gap:12px;
+    padding:16px 30px; border:1px solid var(--gold); color:var(--bone);
+    text-decoration:none; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    position:relative; overflow:hidden;
+    transition:color .4s var(--ease-silk);
+  }
+  .credit-btn::before{
+    content:''; position:absolute; inset:0; background:var(--gold); transform:translateY(101%);
+    transition:transform .45s var(--ease-silk); z-index:-1;
+  }
+  .credit-btn:hover{ color:var(--void); }
+  .credit-btn:hover::before{ transform:translateY(0); }
+  footer .foot-meta{
+    margin-top:26px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.12em; color:var(--ash);
+  }
+  footer .foot-meta a{ color:var(--ash); text-decoration:underline; text-underline-offset:3px; }
+
+  /* magnetic wrapper */
+  .magnetic{ display:inline-block; }
+
+  /* reveal utility */
+  .reveal{ opacity:0; transform:translateY(28px); }
+
+  @media (prefers-reduced-motion: reduce){
+    * { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
+  }
+
+  :focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div class="cursor" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div id="preloader" aria-hidden="true">
+  <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+    <path id="crestPath" d="M60 18c-6 0-10 6-10 13 0 6 4 10 10 10s10-4 10-10c0-7-4-13-10-13z
+      M34 40c-5 2-8 8-6 14 2 5 8 8 13 6 5-2 7-8 5-13-2-6-7-9-12-7z
+      M86 40c5 2 8 8 6 14-2 5-8 8-13 6-5-2-7-8-5-13 2-6 7-9 12-7z
+      M60 58c-16 0-27 13-27 28 0 12 9 20 27 20s27-8 27-20c0-15-11-28-27-28z"/>
+  </svg>
+  <div class="pre-count"><span id="preNum">00</span> / LOADING HOUSEHOLD</div>
+</div>
+<div class="pre-curtain" id="curtain"></div>
+
+<header class="site-nav">
+  <span class="mark">PEPPER &amp; AMBER HOUSEHOLD</span>
+  <span class="status"><span class="dot-live"></span> EST. HOUSEHOLD OF FOUR</span>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <canvas id="particles"></canvas>
+    <div class="hero-vignette"></div>
+    <div class="hero-inner">
+      <div class="eyebrow">A DOMESTIC PORTRAIT SERIES</div>
+      <h1>Four Persians.<br><em>One quiet household.</em></h1>
+      <p class="hero-sub">Pepper and Amber, and the two kittens they raised — Salt and Ash. A record of naps, watch-shifts, and the particular dignity of a very fluffy family.</p>
+      <div class="hero-frame">
+        <img src="assets/family-group.webp" alt="Pepper, Amber, Salt and Ash together in costume, celebrating a second birthday under a gold banner." loading="eager" />
+      </div>
+    </div>
+    <div class="scroll-cue"><div class="line"></div>SCROLL</div>
+  </section>
+
+  <!-- PEPPER -->
+  <section class="chapter" id="pepper">
+    <div class="chapter-media reveal">
+      <span class="frame-num">01 / PEPPER</span>
+      <img src="assets/pepper.webp" alt="Pepper, a solid black traditional Persian, perched watchfully in a cat tree bed." loading="lazy" />
+    </div>
+    <div class="chapter-text reveal">
+      <div class="eyebrow">CHAPTER ONE</div>
+      <h2>Pepper,<br><em>the papa cat.</em></h2>
+      <p class="lede">Solid black, low to the ground, and permanently on watch. Pepper holds the highest perch in any room and rarely announces himself — he simply appears, decides the household is in order, and settles back into the shadows.</p>
+      <dl class="plaque">
+        <div><dt>Coat</dt><dd>Traditional Persian, solid black</dd></div>
+        <div><dt>Role</dt><dd>Papa cat, head of household</dd></div>
+        <div><dt>Known for</dt><dd>Golden eyes that catch every light</dd></div>
+        <div><dt>Temperament</dt><dd>Reserved, watchful, quietly in charge</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- AMBER -->
+  <section class="chapter reverse" id="amber">
+    <div class="chapter-media reveal">
+      <span class="frame-num">02 / AMBER</span>
+      <img src="assets/amber.webp" alt="Amber, a calico exotic longhair Persian, dozing in a pet stroller with one paw draped over the edge." loading="lazy" />
+    </div>
+    <div class="chapter-text reveal">
+      <div class="eyebrow">CHAPTER TWO</div>
+      <h2>Amber,<br><em>the mama cat.</em></h2>
+      <p class="lede">Calico-coated and entirely unbothered, Amber has perfected the art of resting mid-motion — one paw always draped just past the edge of whatever she's settled into. Raising two kittens hasn't touched her composure.</p>
+      <dl class="plaque">
+        <div><dt>Coat</dt><dd>Exotic longhair Persian, calico</dd></div>
+        <div><dt>Role</dt><dd>Mama cat</dd></div>
+        <div><dt>Known for</dt><dd>Sleeping anywhere, gracefully</dd></div>
+        <div><dt>Temperament</dt><dd>Serene, self-possessed, unhurried</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- SALT -->
+  <section class="chapter" id="salt">
+    <div class="chapter-media reveal">
+      <span class="frame-num">03 / SALT</span>
+      <img src="assets/salt.webp" alt="Salt, a white longhair Persian kitten with blue eyes, sitting alert on a cat tree." loading="lazy" />
+    </div>
+    <div class="chapter-text reveal">
+      <div class="eyebrow">CHAPTER THREE</div>
+      <h2>Salt,<br><em>the big sister.</em></h2>
+      <p class="lede">Pale-coated with pale blue eyes, Salt is the elder of the two kittens and behaves like it — upright, alert, and keeping close watch on everything from her post on the cat tree.</p>
+      <dl class="plaque">
+        <div><dt>Coat</dt><dd>Traditional × exotic longhair, white</dd></div>
+        <div><dt>Role</dt><dd>Eldest kitten</dd></div>
+        <div><dt>Known for</dt><dd>Sitting bolt upright, missing nothing</dd></div>
+        <div><dt>Temperament</dt><dd>Curious, alert, self-appointed supervisor</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ASH -->
+  <section class="chapter reverse" id="ash">
+    <div class="chapter-media reveal">
+      <span class="frame-num">04 / ASH</span>
+      <img src="assets/ash.webp" alt="Ash, a grey and white longhair Persian kitten, held gently with paws forward, eyes wide." loading="lazy" />
+    </div>
+    <div class="chapter-text reveal">
+      <div class="eyebrow">CHAPTER FOUR</div>
+      <h2>Ash,<br><em>the youngest.</em></h2>
+      <p class="lede">Grey-and-white and still small enough to hold in two hands, Ash is the baby of the household — wide-eyed, a little unsteady, and utterly unbothered about it.</p>
+      <dl class="plaque">
+        <div><dt>Coat</dt><dd>Traditional × exotic longhair, grey &amp; white</dd></div>
+        <div><dt>Role</dt><dd>Youngest kitten</dd></div>
+        <div><dt>Known for</dt><dd>Big eyes, small paws</dd></div>
+        <div><dt>Temperament</dt><dd>Gentle, wide-eyed, still finding her feet</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- LINEAGE -->
+  <section class="lineage">
+    <div class="eyebrow">THE RECORD</div>
+    <h2>A household, <em>mapped.</em></h2>
+    <div class="tree-wrap">
+      <svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" aria-label="Family lineage: Pepper and Amber are the parents of Salt and Ash">
+        <path class="tline" id="line1" d="M180 50 C 180 120, 300 110, 300 150" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1;"/>
+        <path class="tline" id="line2" d="M420 50 C 420 120, 300 110, 300 150" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1;"/>
+        <path class="tline" id="line3" d="M300 150 C 300 185, 190 195, 150 215" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1;"/>
+        <path class="tline" id="line4" d="M300 150 C 300 185, 410 195, 450 215" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1;"/>
+
+        <g class="tree-node" transform="translate(180,42)">
+          <circle r="20"/>
+          <text class="name" text-anchor="middle" y="5">P</text>
+          <text class="name" text-anchor="middle" y="42">Pepper</text>
+          <text class="role" text-anchor="middle" y="56">Papa</text>
+        </g>
+        <g class="tree-node" transform="translate(420,42)">
+          <circle r="20"/>
+          <text class="name" text-anchor="middle" y="5">A</text>
+          <text class="name" text-anchor="middle" y="42">Amber</text>
+          <text class="role" text-anchor="middle" y="56">Mama</text>
+        </g>
+        <g class="tree-node" transform="translate(150,215)">
+          <circle r="18"/>
+          <text class="name" text-anchor="middle" y="5" style="font-size:12px">S</text>
+          <text class="name" text-anchor="middle" y="38" style="font-size:12px">Salt</text>
+          <text class="role" text-anchor="middle" y="52">Big sister</text>
+        </g>
+        <g class="tree-node" transform="translate(450,215)">
+          <circle r="18"/>
+          <text class="name" text-anchor="middle" y="5" style="font-size:12px">A</text>
+          <text class="name" text-anchor="middle" y="38" style="font-size:12px">Ash</text>
+          <text class="role" text-anchor="middle" y="52">Youngest</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section class="closing">
+    <img src="assets/family-group.webp" alt="The full household celebrating a second birthday together." loading="lazy" />
+    <div class="closing-scrim"></div>
+    <div class="closing-inner">
+      <div class="eyebrow">TWO YEARS IN</div>
+      <h2>Still <em>one household.</em></h2>
+      <p>A papa cat, a mama cat, and the two kittens they raised between them — captured together, gold banner and all, on the day the youngest turned two.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="magnetic" id="magBtn">
+    <a class="credit-btn" href="https://sadayabonjovi-eng.github.io" target="_blank" rel="noopener">See more of my work →</a>
+  </div>
+  <div class="foot-meta">Crafted by Bon — automation &amp; web builder, Cebu, PH · <a href="https://sadayabonjovi-eng.github.io" target="_blank" rel="noopener">sadayabonjovi-eng.github.io</a></div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+(function(){
+  "use strict";
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ---------------- preloader ---------------- */
+  var preNum = document.getElementById('preNum');
+  var crestPath = document.getElementById('crestPath');
+  var curtain = document.getElementById('curtain');
+  var preloader = document.getElementById('preloader');
+  var count = { v: 0 };
+
+  gsap.to(crestPath, { strokeDashoffset:0, duration:1.6, ease:'power2.out' });
+  gsap.to(count, {
+    v: 100, duration: 1.7, ease:'power1.inOut',
+    onUpdate: function(){ preNum.textContent = String(Math.floor(count.v)).padStart(2,'0'); },
+    onComplete: function(){
+      var tl = gsap.timeline({ onComplete: function(){ preloader.style.display='none'; curtain.style.display='none'; startHeroReveal(); } });
+      tl.to(preloader, { opacity:0, duration:.5, ease:'power2.out' })
+        .to(curtain, { opacity:0, duration:.7, ease:'power2.out' }, '-=.3');
+    }
+  });
+
+  /* ---------------- custom cursor ---------------- */
+  if (!reduced && window.matchMedia('(min-width:861px)').matches){
+    var dot = document.getElementById('cursorDot');
+    var ring = document.getElementById('cursorRing');
+    var mx=0,my=0, rx=0, ry=0;
+    window.addEventListener('mousemove', function(e){ mx=e.clientX; my=e.clientY; dot.style.left=mx+'px'; dot.style.top=my+'px'; });
+    function loop(){
+      rx += (mx-rx)*0.15; ry += (my-ry)*0.15;
+      ring.style.left = rx+'px'; ring.style.top = ry+'px';
+      requestAnimationFrame(loop);
+    }
+    loop();
+    document.querySelectorAll('a, .magnetic').forEach(function(el){
+      el.addEventListener('mouseenter', function(){ dot.classList.add('grow'); ring.classList.add('grow'); });
+      el.addEventListener('mouseleave', function(){ dot.classList.remove('grow'); ring.classList.remove('grow'); });
+    });
+
+    /* magnetic button */
+    var magBtn = document.getElementById('magBtn');
+    magBtn.addEventListener('mousemove', function(e){
+      var r = magBtn.getBoundingClientRect();
+      var relX = e.clientX - (r.left + r.width/2);
+      var relY = e.clientY - (r.top + r.height/2);
+      gsap.to(magBtn, { x: relX*0.3, y: relY*0.3, duration:.4, ease:'power2.out' });
+    });
+    magBtn.addEventListener('mouseleave', function(){ gsap.to(magBtn, { x:0, y:0, duration:.5, ease:'elastic.out(1,0.4)' }); });
+  }
+
+  /* ---------------- three.js particle field (hero only) ---------------- */
+  var particleAnim;
+  (function(){
+    var canvas = document.getElementById('particles');
+    if (reduced){ canvas.style.display='none'; return; }
+    var renderer = new THREE.WebGLRenderer({ canvas:canvas, alpha:true, antialias:false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera.position.z = 12;
+
+    var count = window.innerWidth < 760 ? 160 : 380;
+    var geo = new THREE.BufferGeometry();
+    var positions = new Float32Array(count*3);
+    for (var i=0;i<count;i++){
+      positions[i*3] = (Math.random()-0.5)*22;
+      positions[i*3+1] = (Math.random()-0.5)*14;
+      positions[i*3+2] = (Math.random()-0.5)*14;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    function makeSprite(){
+      var c = document.createElement('canvas'); c.width=64; c.height=64;
+      var ctx = c.getContext('2d');
+      var g = ctx.createRadialGradient(32,32,0,32,32,32);
+      g.addColorStop(0,'rgba(203,161,53,0.9)');
+      g.addColorStop(0.4,'rgba(203,161,53,0.35)');
+      g.addColorStop(1,'rgba(203,161,53,0)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,64,64);
+      return new THREE.CanvasTexture(c);
+    }
+    var mat = new THREE.PointsMaterial({
+      size: 0.14, map: makeSprite(), transparent:true, depthWrite:false,
+      blending: THREE.AdditiveBlending, opacity:0.8
+    });
+    var points = new THREE.Points(geo, mat);
+    scene.add(points);
+
+    function resize(){
+      var w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w,h);
+      camera.aspect = w/h; camera.updateProjectionMatrix();
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    var clock = new THREE.Clock();
+    var heroEl = document.getElementById('hero');
+    var visible = true;
+    var io = new IntersectionObserver(function(entries){ visible = entries[0].isIntersecting; }, { threshold:0 });
+    io.observe(heroEl);
+
+    function animate(){
+      particleAnim = requestAnimationFrame(animate);
+      if (!visible) return;
+      var t = clock.getElapsedTime();
+      points.rotation.y = t*0.015;
+      points.rotation.x = Math.sin(t*0.05)*0.05;
+      renderer.render(scene, camera);
+    }
+    animate();
+  })();
+
+  /* ---------------- scroll reveals ---------------- */
+  function startHeroReveal(){
+    gsap.from('.hero-inner .eyebrow', { opacity:0, y:16, duration:.8, ease:'power2.out' });
+    gsap.from('.hero h1', { opacity:0, y:36, duration:1, ease:'power3.out', delay:.1 });
+    gsap.from('.hero-sub', { opacity:0, y:20, duration:.9, ease:'power2.out', delay:.3 });
+    gsap.from('.hero-frame', { opacity:0, y:28, scale:0.97, duration:1, ease:'power3.out', delay:.45 });
+    gsap.from('.scroll-cue', { opacity:0, duration:1, delay:.9 });
+  }
+
+  document.querySelectorAll('.chapter .reveal').forEach(function(el, i){
+    gsap.to(el, {
+      opacity:1, y:0, duration:1, ease:'power3.out',
+      scrollTrigger:{ trigger: el, start:'top 82%' }
+    });
+  });
+
+  document.querySelectorAll('.chapter-media img').forEach(function(img){
+    gsap.to(img, {
+      scale:1, ease:'none',
+      scrollTrigger:{ trigger: img.closest('.chapter'), start:'top bottom', end:'bottom top', scrub:0.6 }
+    });
+  });
+
+  gsap.utils.toArray('#line1,#line2,#line3,#line4').forEach(function(line, i){
+    gsap.to(line, {
+      strokeDashoffset:0, duration:1, ease:'power2.inOut', delay:i*0.15,
+      scrollTrigger:{ trigger:'.lineage', start:'top 60%' }
+    });
+  });
+  gsap.from('.lineage .eyebrow, .lineage h2', {
+    opacity:0, y:20, duration:.9, ease:'power2.out', stagger:.1,
+    scrollTrigger:{ trigger:'.lineage', start:'top 75%' }
+  });
+  gsap.utils.toArray('.tree-node').forEach(function(node,i){
+    gsap.from(node, { opacity:0, scale:0.7, duration:.7, ease:'back.out(1.6)', delay:0.4+i*0.12,
+      scrollTrigger:{ trigger:'.lineage', start:'top 60%' } });
+  });
+
+  gsap.from('.closing-inner', {
+    opacity:0, y:30, duration:1.1, ease:'power3.out',
+    scrollTrigger:{ trigger:'.closing', start:'top 65%' }
+  });
+  gsap.to('.closing img', {
+    scale:1.08, ease:'none',
+    scrollTrigger:{ trigger:'.closing', start:'top bottom', end:'bottom top', scrub:0.6 }
+  });
+
+  gsap.from('footer *', {
+    opacity:0, y:16, duration:.8, ease:'power2.out', stagger:.08,
+    scrollTrigger:{ trigger:'footer', start:'top 90%' }
+  });
+})();
+</script>
+</body>
+</html>
